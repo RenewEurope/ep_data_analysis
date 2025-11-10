@@ -7,6 +7,10 @@ on: [push, workflow_dispatch]
 #   schedule:
 #   # At 00:05AM, from MON to FRI
 #     - cron: "5 0 * * 1-5"
+
+# Permissions
+permissions:
+  contents: write
     
 # Jobs - What the Action should do? 
 jobs:
