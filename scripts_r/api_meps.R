@@ -21,7 +21,7 @@ cat("\n=====\nStarting to collect MEPs data.\n=====\n")
 #-----------------------------------------------------------------------------#
 ## Libraries ------------------------------------------------------------------
 if ( !require("pacman") ) install.packages("pacman")
-pacman::p_load(char = c("curl", "data.table", "doFuture", "dplyr", "here", "httr2", 
+pacman::p_load(char = c("curl", "data.table", "doFuture", "dplyr", "here", "httr2",
                         "janitor", "jsonlite", "lubridate", "progressr", "readr",
                         "stringi", "tidyr", "tidyselect") )
 
@@ -565,7 +565,7 @@ if ( all(mep_ids %in% unique(meps_dates_ids$pers_id)) ) {
   }
 
   # Test whether Missing MEPs have ever attended a Plenary, otherwise they may just have recently joined
-  if ( nrow(pl_attendance[missing_meps %in% pers_id]) > 0L ) {
+  if ( nrow(pl_attendance[pers_id %in% missing_meps]) > 0L ) {
     cat("\nVery strange: the missing MEPs have attended Plenaries. Check again.\n")
   } else {
     cat("\nThe missing MEPs have never attended Plenaries. They may be new.\n")

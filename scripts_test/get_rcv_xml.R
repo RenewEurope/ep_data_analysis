@@ -148,7 +148,7 @@ if (nrow(rcv_allsessions) > 0) {
   rcv_allsessions[, report_number := {
     # Pattern: A9-0123/2021 or similar
     pattern <- "[A-Z][8-9]-\\d{4}/\\d{4}|[A-Z]{2}-[A-Z]9-\\d{4}/\\d{4}"
-    sapply(rcv_description_text, function(x) {
+    sapply(description, function(x) {
       if (is.na(x)) return(NA)
       match <- regexpr(pattern, x, perl = TRUE)
       if (match > 0) {
@@ -167,13 +167,13 @@ if (nrow(rcv_allsessions) > 0) {
   
   # Manual corrections for data entry mistakes
   rcv_allsessions[
-    grepl("\\nA9-057/2021 - Olivier Chastel", rcv_description_text, ignore.case = TRUE, perl = TRUE),
+    grepl("\\nA9-057/2021 - Olivier Chastel", description, ignore.case = TRUE, perl = TRUE),
     report_number := "A9-0057/2021"]
   rcv_allsessions[
-    grepl("A-0269/2020 ", rcv_description_text, ignore.case = TRUE, perl = TRUE),
+    grepl("A-0269/2020 ", description, ignore.case = TRUE, perl = TRUE),
     report_number := "A9-0269/2020"]
   rcv_allsessions[
-    grepl("A9-0088/202 - Clara Aguilera - Proc", rcv_description_text, ignore.case = TRUE, perl = TRUE),
+    grepl("A9-0088/202 - Clara Aguilera - Proc", description, ignore.case = TRUE, perl = TRUE),
     report_number := "A9-0088/2020"]
   
   # Write file
