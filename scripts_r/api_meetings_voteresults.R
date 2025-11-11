@@ -15,8 +15,13 @@ if ( !exists("mandate_starts") ) {
 # Repo setup
 source(file = here::here("scripts_r", "repo_setup.R") )
 
+#------------------------------------------------------------------------------#
+## Functions -------------------------------------------------------------------
+source(file = here::here("scripts_r", "unnest_functions.R"))
+
 # Load parallel API function --------------------------------------------------#
 source(file = here::here("scripts_r", "parallel_api_calls.R"))
+
 
 #------------------------------------------------------------------------------#
 ## GET/meetings/{event-id}//meetings/{event-id}/vote-results -------------------
@@ -121,27 +126,27 @@ voteids_number <- lapply(
       i_df[, c("id", "activity_id", "activity_order")]
     } }
 ) |>
-  data.table::rbindlist(use.names = TRUE, fill = TRUE)
-data.table::setnames(x = voteids_number, old = "activity_id", new = "vote_id")
+  data.table::rbindlist(use.names = TRUE, fill = TRUE) |>
+  unique()
+data.table::setnames(x = voteids_number,
+                     old = c("id", "activity_id"),
+                     new = c("vot_evnt_id", "vot_id"))
 
 
 #------------------------------------------------------------------------------#
-### consists_of: Extract Vote ID and RCV ID -------------------------------------------------
-voteids_rcvids <- lapply(
-  X = resp_list,
-  FUN = function(i_df) {
-    if ("consists_of" %in% names(i_df) ) {
-      df_tmp <- i_df |>
-        dplyr::select(vot_evnt_id = id, vot_id = activity_id, consists_of) |>
-        tidyr::unnest(consists_of) |>
-        dplyr::mutate(
-          rcv_id = as.integer(
-            gsub(pattern = "^.*-DEC-", replacement = "", x = consists_of) )
-        )
-    } }
+### consists_of: Extract Vote ID and RCV ID ------------------------------------
+voteids_rcvids = unnest_nested_list(
+  data_list = resp_list,
+  group_cols = c("id", "activity_id"),
+  unnest_col = "consists_of"
 ) |>
-  data.table::rbindlist(use.names = TRUE, fill = TRUE) |>
-  dplyr::distinct()
+  unique()
+voteids_rcvids[, rcv_id := as.integer(
+  gsub(pattern = "^.*-DEC-", replacement = "", x = consists_of)
+)]
+data.table::setnames(x = voteids_rcvids,
+                     old = c("id", "activity_id"),
+                     new = c("vot_evnt_id", "vot_id"))
 
 # Write data conditional on mandate -------------------------------------------#
 if ( exists("today_date") ) {
@@ -162,7 +167,6 @@ if ( exists("today_date") ) {
 cols_languages_end <- c("_el", "_bg", "_de", "_hu", "_cs", "_ro", "_et", "_nl",
                         "_fi", "_mt", "_sl", "_sv", "_pt", "_it", "_lt", "_es",
                         "_da", "_pl", "_sk", "_lv", "_hr", "_ga")
-
 votes_labels <- lapply(
   X = resp_list,
   FUN = function(i_df) {
@@ -215,36 +219,41 @@ if ( exists("today_date")) {
 
 #------------------------------------------------------------------------------#
 ### Votes and Doc IDs ----------------------------------------------------------
-votes_based_on_a_realization_of <- lapply(
-  X = resp_list,
-  FUN = function(i_df) {
-    if ( "based_on_a_realization_of" %in% names(i_df)) {
-      i_df |>
-        dplyr::select(vote_id = activity_id, based_on_a_realization_of) |>
-        tidyr::unnest(based_on_a_realization_of)
-    } } ) |>
-  data.table::rbindlist()
+votes_based_on_a_realization_of <- unnest_nested_list(
+  data_list = resp_list,
+  group_cols = c("id", "activity_id"),
+  unnest_col = "based_on_a_realization_of"
+)
+data.table::setnames(x = voteids_rcvids,
+                     old = c("id", "activity_id"),
+                     new = c("vot_evnt_id", "vot_id"))
 # Check
-# votes_based_on_a_realization_of[, .N, by = list(vote_id)][order(N)]
+# votes_based_on_a_realization_of[, .N, by = list(vot_id)][order(N)]
 
 if ( nrow(votes_based_on_a_realization_of) > 0L ) {
   # create temporary duplicate col for string processing
-  votes_based_on_a_realization_of[, identifier2 := gsub(
-    pattern="eli/dl/doc/", replacement = "",
-    x = based_on_a_realization_of, fixed = TRUE)]
+  votes_based_on_a_realization_of[, `:=`(
+    identifier2 = gsub(pattern="eli/dl/doc/", replacement = "",
+                        x = based_on_a_realization_of, fixed = TRUE)
+    )]
   # invert the orders of the groups
-  votes_based_on_a_realization_of[, doc_id := gsub(
-    pattern = "(^[A-Z]{1,2}.\\d{1,2}.)(\\d{4}).(\\d{4})",
-    replacement = "\\1\\3-\\2", x = identifier2, perl = T) ]
+  votes_based_on_a_realization_of[, `:=`(
+    doc_id = gsub(pattern = "(^[A-Z]{1,2}.\\d{1,2}.)(\\d{4}).(\\d{4})",
+                  replacement = "\\1\\3-\\2", x = identifier2, perl = T)
+    )]
   # delete -
-  votes_based_on_a_realization_of[, doc_id := gsub(pattern = "(?<=[A-Z]).",
-                                                   replacement = "", x = doc_id, perl = T)]
+  votes_based_on_a_realization_of[, `:=`(
+    doc_id = gsub(pattern = "(?<=[A-Z]).", replacement = "", x = doc_id, perl = T)
+    )]
   # treat RC separately
-  votes_based_on_a_realization_of[, doc_id := gsub(pattern = "^RC",
-                                                   replacement = "RC.B", x = doc_id, perl = T)]
+  votes_based_on_a_realization_of[, `:=`(
+    doc_id = gsub(pattern = "^RC", replacement = "RC.B", x = doc_id, perl = T)
+    )]
   # slash at the end
-  votes_based_on_a_realization_of[, doc_id := gsub(pattern = "(?<=.\\d{4}).",
-                                                   replacement = "/", x = doc_id, perl = T)]
+  votes_based_on_a_realization_of[, `:=`(
+    doc_id = gsub(pattern = "(?<=.\\d{4}).",
+                  replacement = "/", x = doc_id, perl = T)
+    )]
   # Delete cols
   votes_based_on_a_realization_of[, c("identifier2") := NULL]
   # sapply(votes_based_on_a_realization_of, function(x) sum(is.na(x))) # check
