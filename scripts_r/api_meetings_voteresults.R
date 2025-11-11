@@ -12,6 +12,9 @@ if ( !exists("mandate_starts") ) {
   mandate_starts <- "2024-07-14"
 }
 
+# Repo setup
+source(file = here::here("scripts_r", "repo_setup.R") )
+
 # Load parallel API function --------------------------------------------------#
 source(file = here::here("scripts_r", "parallel_api_calls.R"))
 
@@ -21,27 +24,54 @@ source(file = here::here("scripts_r", "parallel_api_calls.R"))
 # EXAMPLE: "https://data.europarl.europa.eu/api/v2/meetings/MTG-PL-2024-04-23/vote-results?format=application%2Fld%2Bjson&offset=0"
 
 # Load data conditional on mandate --------------------------------------------#
-if ( exists("today_date") ) {
-  pl_meetings <- data.table::fread(
-    file = here::here("data_out", "meetings", "pl_meetings_10.csv") ) |>
-    dplyr::filter(activity_id == activity_id_today)
-} else if ( !exists("today_date")
-            && mandate_starts == as.character("2019-07-01") ) {
-  pl_meetings <- data.table::fread(
-    file = here::here("data_out", "meetings", "pl_meetings_all.csv"))
-} else if ( !exists("today_date")
-            && mandate_starts == as.character("2024-07-14") ) {
-  pl_meetings <- data.table::fread(
-    file = here::here("data_out", "meetings", "pl_meetings_10.csv") )
-} else {
-  stop("You need to specify a valid time period: today; or the starting day for an EP mandate (e.g. for the 10th mandate, '2024-07-14')")
+### Load list of RCVs Plenaries ------------------------------------------------
+if ( !exists("today_date") && mandate_starts == "2019-07-01" ) {
+  get_api_data(
+    path = here::here("data_out", "docs_pl", "pl_session_docs_all.csv"),
+    script = here::here("scripts_r", "api_pl_session_docs.R"),
+    varname = "pl_session_docs",
+  )
+} else if (!exists("today_date") && mandate_starts == "2024-07-14" ) {
+  get_api_data(
+    path = here::here("data_out", "docs_pl", "pl_session_docs_10.csv"),
+    script = here::here("scripts_r", "api_pl_session_docs.R"),
+    varname = "pl_session_docs",
+  )
+} else if ( !exists("today_date") # not a daily run
+            && ( !exists(mandate_starts) # no mandate specified
+                 | !mandate_starts %in% c("2024-07-14", "2019-07-01") ) ) {
+  stop("\n=====\nYou need to specify a valid timeframe.\nThis could be either the starting date for a mandate (currently: '2019-07-01', '2024-07-14'), or today's date.\n=====\n")
 }
+
+
+# Extract vector of Plenary Dates ---------------------------------------------#
+if ( exists("today_date") ) {
+  meet_pl_ids = activity_id_today
+} else {
+  # Extract date
+  pl_session_docs[, `:=`(
+    activity_date = data.table::as.IDate(
+      gsub(pattern = "PV-\\d{1,2}-|-VOT",
+           replacement = "", x = identifier, perl = TRUE) ) )
+  ]
+  # Subset to relevant Plenary dates
+  pl_session_docs_rcv = pl_session_docs[
+    activity_date >= mandate_starts
+    & grepl(pattern = "-VOT", x = id, fixed = TRUE)
+  ]
+  # Create Plenary ID
+  pl_session_docs_rcv[, activity_id := paste0("MTG-PL-", activity_date)]
+
+  # Get MEETINGS IDs
+  meet_pl_ids <- sort( unique(pl_session_docs_rcv$activity_id) )
+}
+
 
 ### API calls with conditional parallelization --------------------------------
 # Build URLs for vote results
 api_urls <- paste0(
   "https://data.europarl.europa.eu/api/v2/meetings/",
-  pl_meetings$activity_id,
+  meet_pl_ids,
   "/vote-results?format=application%2Fld%2Bjson&offset=0"
 )
 
@@ -75,11 +105,12 @@ if (use_parallel) {
 if ( !exists("today_date")
      && mandate_starts == as.character("2024-07-14") ) {
   readr::write_rds(x = resp_list, file = here::here(
-    "data_out", "votes", "meetings_voteresults.rds") )
-  # list_tmp <- readr::read_rds(file = here::here(
-  #   "data_out", "votes", "meetings_voteresults.rds") )
+    "data_out", "votes", "meetings_voteresults_10.rds") )
+} else if ( !exists("today_date")
+            && mandate_starts == as.character("2019-07-01") ) {
+  readr::write_rds(x = resp_list, file = here::here(
+    "data_out", "votes", "meetings_voteresults_10.rds") )
 }
-
 
 #------------------------------------------------------------------------------#
 ### activity_order: Extract Vote ID and Number ---------------------------------
@@ -87,13 +118,11 @@ voteids_number <- lapply(
   X = resp_list,
   FUN = function(i_df) {
     if ( any(grepl(pattern = "activity_order", x = names(i_df) ) ) ) {
-      df_tmp <- i_df |>
-        dplyr::select(id, vote_id = activity_id,
-                      dplyr::contains("activity_order"))
+      i_df[, c("id", "activity_id", "activity_order")]
     } }
 ) |>
-  data.table::rbindlist(use.names = TRUE, fill = TRUE) |>
-  dplyr::distinct()
+  data.table::rbindlist(use.names = TRUE, fill = TRUE)
+data.table::setnames(x = voteids_number, old = "activity_id", new = "vote_id")
 
 
 #------------------------------------------------------------------------------#
