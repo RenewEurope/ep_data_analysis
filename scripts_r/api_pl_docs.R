@@ -232,7 +232,7 @@ if ( last_doc > 30L | is.na(last_doc) | !exists("doc_ids_missing") ) {
   #### If not, download the missing files --------------------------------------
 
   # Build URLs for missing document chunks ------------------------------------#
-  chunk_size <- 50L  # Reduced from 50 to avoid timeouts
+  chunk_size <- 20L  # Reduced from 50 to avoid timeouts
   doc_ids_chunks <- split(x = doc_ids_missing, ceiling(seq_along(doc_ids_missing) / chunk_size))
 
   # Build API URLs for each chunk
@@ -270,21 +270,7 @@ if ( last_doc > 30L | is.na(last_doc) | !exists("doc_ids_missing") ) {
   # DEBUG: Analyze results immediately ----------------------------------------#
   cat("\n=== DEBUGGING RESULTS ===\n")
   cat("Total responses:", length(results$responses), "\n")
-  cat("Failed calls:", sum(results$failed_calls), "\n")
-  cat("NULL responses:", sum(sapply(results$responses, is.null)), "\n")
-
-  # Find which responses are NULL
-  null_indices <- which(sapply(results$responses, is.null))
-  if (length(null_indices) > 0) {
-    cat("NULL response indices:", paste(null_indices, collapse = ", "), "\n")
-    cat("Corresponding failed_calls status:\n")
-    for (idx in head(null_indices, 5)) {  # Show first 5 NULL responses
-      cat("  Response", idx, "- failed:", results$failed_calls[idx], "\n")
-      cat("  Corresponding URL:", substr(api_urls[idx], 1, 150), "...\n")
-    }
-  }
   cat("=========================\n")
-
 
   list_tmp <- results$responses[!results$failed_calls]
 
@@ -294,14 +280,15 @@ if ( last_doc > 30L | is.na(last_doc) | !exists("doc_ids_missing") ) {
       "data_out", "docs_pl", "pl_docs_list.rds") )
   }
   # Append the old and new list
-  pl_docs_list <- c(pl_docs_list, list_tmp)
-  # Overwrite tmp file --------------------------------------------------------#
-  readr::write_rds(x = pl_docs_list, file = here::here(
-    "data_out", "docs_pl", "pl_docs_list.rds") )
+  if ( length(list_tmp) > 0 ) {
+    pl_docs_list <- c(pl_docs_list, list_tmp)
+    # Overwrite tmp file ------------------------------------------------------#
+    readr::write_rds(x = pl_docs_list, file = here::here(
+      "data_out", "docs_pl", "pl_docs_list.rds") )
 
-  ##### Process all docs -------------------------------------------------------
-  source( file = here::here("scripts_r", "process_pl_docs.R") )
-
+    ##### Process all docs -----------------------------------------------------
+    source( file = here::here("scripts_r", "process_pl_docs.R") )
+  }
 
   # Remove objects ------------------------------------------------------------#
   rm(list_tmp, pl_docs_list)

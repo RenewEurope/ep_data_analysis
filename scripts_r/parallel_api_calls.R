@@ -87,103 +87,241 @@ on.exit({
   resp_list <- vector(mode = "list", length = length(urls))
   failed_calls <- rep(x = FALSE, length(resp_list))
   
-  cat("Starting parallel API calls...\n")
   start_time <- Sys.time()
   
-  # Define the parallel processing function
-  process_calls <- function() {
-    foreach(
-      i_url = seq_along(urls),
-      .options.future = list(
-        packages = c("httr2", if (show_progress) "progressr"),
-        globals = structure(TRUE, add = c("urls", "user_agent", "capacity", 
-                                        "fill_time_s", "timeout_s", "max_retries", 
-                                        "extract_data", "daily_run"))
-      )
-    ) %dofuture% {
-      
-      # Create an API request
-      req <- httr2::request(urls[i_url])
-      
-      # Add time-out and ignore error before performing request
-      resp <- tryCatch({
-        req |>
-          httr2::req_headers("User-Agent" = user_agent) |>
-          httr2::req_timeout(timeout_s) |>
-          httr2::req_error(is_error = ~FALSE) |>
-          httr2::req_throttle(capacity = capacity, fill_time_s = fill_time_s) |>
-          httr2::req_retry(max_tries = max_retries,
-                           backoff = ~ 2 ^ .x + runif(n = 1, min = -0.5, max = 0.5)) |>
-          httr2::req_perform()
-      }, error = function(e) {
-        # Return a mock response object for timeouts/errors
-        list(status_code = 408) # 408 = Request Timeout
-      })
-      
-      # Initialize return values
-      resp_body <- NULL
-      failed <- FALSE
-      
-      # Handle response (including timeouts and errors)
-      if (is.list(resp) && !is.null(resp$status_code) && resp$status_code == 408) {
-        # This was a timeout or connection error
-        if (!daily_run) {
-          cat("\nWARNING: API request timed out for", urls[i_url], "\n")
-        }
-        # Always mark timeouts as failed, regardless of daily_run
-        failed <- TRUE
-      } else if (httr2::resp_status(resp) == 200L) {
-        # Successful response
-        if (extract_data) {
-          resp_json <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
-          if (!is.null(resp_json[["data"]]) && length(resp_json[["data"]]) > 0) {
-            resp_body <- resp_json[["data"]]
-          } else {
-            # API returned 200 but with empty/null data
-            cat("\nNOTE: API returned empty data for", urls[i_url], "\n")
-            resp_body <- NULL
+  # Choose processing method based on force_sequential flag
+  if (force_sequential || max_workers == 1) {
+    # TRUE SEQUENTIAL PROCESSING - No parallel infrastructure
+    cat("Starting sequential API calls...\n")
+    
+    # Initialize progress if enabled
+    if (show_progress && requireNamespace("progressr", quietly = TRUE)) {
+      library(progressr)
+      with_progress({
+        p <- progressor(steps = length(urls))
+        
+        for (i_url in seq_along(urls)) {
+          # Create an API request
+          req <- httr2::request(urls[i_url])
+          
+          # Add time-out and ignore error before performing request
+          resp <- tryCatch({
+            req |>
+              httr2::req_headers("User-Agent" = user_agent) |>
+              httr2::req_timeout(timeout_s) |>
+              httr2::req_error(is_error = ~FALSE) |>
+              httr2::req_throttle(capacity = capacity, fill_time_s = fill_time_s) |>
+              httr2::req_retry(max_tries = max_retries,
+                               backoff = ~ 2 ^ .x + runif(n = 1, min = -0.5, max = 0.5)) |>
+              httr2::req_perform()
+          }, error = function(e) {
+            # Return a mock response object for timeouts/errors
+            list(status_code = 408) # 408 = Request Timeout
+          })
+          
+          # Initialize return values
+          resp_body <- NULL
+          failed <- FALSE
+          
+          # Handle response (including timeouts and errors)
+          if (is.list(resp) && !is.null(resp$status_code) && resp$status_code == 408) {
+            # This was a timeout or connection error
+            if (!daily_run) {
+              cat("\nWARNING: API request timed out for", urls[i_url], "\n")
+            }
+            # Always mark timeouts as failed, regardless of daily_run
+            failed <- TRUE
+          } else if (httr2::resp_status(resp) == 200L) {
+            # Successful response
+            if (extract_data) {
+              resp_json <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+              if (!is.null(resp_json[["data"]]) && length(resp_json[["data"]]) > 0) {
+                resp_body <- resp_json[["data"]]
+              } else {
+                # API returned 200 but with empty/null data
+                cat("\nNOTE: API returned empty data for", urls[i_url], "\n")
+                resp_body <- NULL
+              }
+            } else {
+              resp_body <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+            }
+          } else if (httr2::resp_status(resp) != 200L) {
+            if (!daily_run) {
+              cat("\nWARNING: API request failed for", urls[i_url], "- Status:", httr2::resp_status(resp), "\n")
+            }
+            # Always mark non-200 responses as failed, regardless of daily_run
+            failed <- TRUE
           }
-        } else {
-          resp_body <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+          
+          # Store results directly
+          resp_list[[i_url]] <- resp_body
+          failed_calls[i_url] <- failed
+          
+          # Update progress
+          p(sprintf("Completed API call %d/%d", i_url, length(urls)))
         }
-      } else if (httr2::resp_status(resp) != 200L) {
-        if (!daily_run) {
-          cat("\nWARNING: API request failed for", urls[i_url], "- Status:", httr2::resp_status(resp), "\n")
+      })
+    } else {
+      # Sequential processing without progress bar
+      for (i_url in seq_along(urls)) {
+        # Create an API request
+        req <- httr2::request(urls[i_url])
+        
+        # Add time-out and ignore error before performing request
+        resp <- tryCatch({
+          req |>
+            httr2::req_headers("User-Agent" = user_agent) |>
+            httr2::req_timeout(timeout_s) |>
+            httr2::req_error(is_error = ~FALSE) |>
+            httr2::req_throttle(capacity = capacity, fill_time_s = fill_time_s) |>
+            httr2::req_retry(max_tries = max_retries,
+                             backoff = ~ 2 ^ .x + runif(n = 1, min = -0.5, max = 0.5)) |>
+            httr2::req_perform()
+        }, error = function(e) {
+          # Return a mock response object for timeouts/errors
+          list(status_code = 408) # 408 = Request Timeout
+        })
+        
+        # Initialize return values
+        resp_body <- NULL
+        failed <- FALSE
+        
+        # Handle response (including timeouts and errors)
+        if (is.list(resp) && !is.null(resp$status_code) && resp$status_code == 408) {
+          # This was a timeout or connection error
+          if (!daily_run) {
+            cat("\nWARNING: API request timed out for", urls[i_url], "\n")
+          }
+          # Always mark timeouts as failed, regardless of daily_run
+          failed <- TRUE
+        } else if (httr2::resp_status(resp) == 200L) {
+          # Successful response
+          if (extract_data) {
+            resp_json <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+            if (!is.null(resp_json[["data"]]) && length(resp_json[["data"]]) > 0) {
+              resp_body <- resp_json[["data"]]
+            } else {
+              # API returned 200 but with empty/null data
+              cat("\nNOTE: API returned empty data for", urls[i_url], "\n")
+              resp_body <- NULL
+            }
+          } else {
+            resp_body <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+          }
+        } else if (httr2::resp_status(resp) != 200L) {
+          if (!daily_run) {
+            cat("\nWARNING: API request failed for", urls[i_url], "- Status:", httr2::resp_status(resp), "\n")
+          }
+          # Always mark non-200 responses as failed, regardless of daily_run
+          failed <- TRUE
         }
-        # Always mark non-200 responses as failed, regardless of daily_run
-        failed <- TRUE
+        
+        # Store results directly
+        resp_list[[i_url]] <- resp_body
+        failed_calls[i_url] <- failed
       }
-      
-      # Update progress if enabled
-      if (show_progress && exists("p")) {
-        p(sprintf("Completed API call %d/%d", i_url, length(urls)))
-      }
-      
-      # Return both the response and failure status with index
-      list(response = resp_body, failed = failed, index = i_url)
     }
-  }
-  
-  # Execute with or without progress tracking
-  if (show_progress) {
-    results <- with_progress({
-      p <<- progressor(steps = length(urls))
-      process_calls()
-    })
+    
   } else {
-    results <- process_calls()
-  }
-  
-  # Reconstruct the original data structures from parallel results
-  for (i in seq_along(results)) {
-    idx <- results[[i]]$index
-    resp_list[[idx]] <- results[[i]]$response
-    failed_calls[idx] <- results[[i]]$failed
+    # PARALLEL PROCESSING
+    cat("Starting parallel API calls...\n")
+    
+    # Define the parallel processing function
+    process_calls <- function() {
+      foreach(
+        i_url = seq_along(urls),
+        .options.future = list(
+          packages = c("httr2", if (show_progress) "progressr"),
+          globals = structure(TRUE, add = c("urls", "user_agent", "capacity", 
+                                          "fill_time_s", "timeout_s", "max_retries", 
+                                          "extract_data", "daily_run"))
+        )
+      ) %dofuture% {
+        
+        # Create an API request
+        req <- httr2::request(urls[i_url])
+        
+        # Add time-out and ignore error before performing request
+        resp <- tryCatch({
+          req |>
+            httr2::req_headers("User-Agent" = user_agent) |>
+            httr2::req_timeout(timeout_s) |>
+            httr2::req_error(is_error = ~FALSE) |>
+            httr2::req_throttle(capacity = capacity, fill_time_s = fill_time_s) |>
+            httr2::req_retry(max_tries = max_retries,
+                             backoff = ~ 2 ^ .x + runif(n = 1, min = -0.5, max = 0.5)) |>
+            httr2::req_perform()
+        }, error = function(e) {
+          # Return a mock response object for timeouts/errors
+          list(status_code = 408) # 408 = Request Timeout
+        })
+        
+        # Initialize return values
+        resp_body <- NULL
+        failed <- FALSE
+        
+        # Handle response (including timeouts and errors)
+        if (is.list(resp) && !is.null(resp$status_code) && resp$status_code == 408) {
+          # This was a timeout or connection error
+          if (!daily_run) {
+            cat("\nWARNING: API request timed out for", urls[i_url], "\n")
+          }
+          # Always mark timeouts as failed, regardless of daily_run
+          failed <- TRUE
+        } else if (httr2::resp_status(resp) == 200L) {
+          # Successful response
+          if (extract_data) {
+            resp_json <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+            if (!is.null(resp_json[["data"]]) && length(resp_json[["data"]]) > 0) {
+              resp_body <- resp_json[["data"]]
+            } else {
+              # API returned 200 but with empty/null data
+              cat("\nNOTE: API returned empty data for", urls[i_url], "\n")
+              resp_body <- NULL
+            }
+          } else {
+            resp_body <- httr2::resp_body_json(resp, simplifyDataFrame = TRUE)
+          }
+        } else if (httr2::resp_status(resp) != 200L) {
+          if (!daily_run) {
+            cat("\nWARNING: API request failed for", urls[i_url], "- Status:", httr2::resp_status(resp), "\n")
+          }
+          # Always mark non-200 responses as failed, regardless of daily_run
+          failed <- TRUE
+        }
+        
+        # Update progress if enabled
+        if (show_progress && exists("p")) {
+          p(sprintf("Completed API call %d/%d", i_url, length(urls)))
+        }
+        
+        # Return both the response and failure status with index
+        list(response = resp_body, failed = failed, index = i_url)
+      }
+    }
+    
+    # Execute with or without progress tracking
+    if (show_progress) {
+      results <- with_progress({
+        p <<- progressor(steps = length(urls))
+        process_calls()
+      })
+    } else {
+      results <- process_calls()
+    }
+    
+    # Reconstruct the original data structures from parallel results
+    for (i in seq_along(results)) {
+      idx <- results[[i]]$index
+      resp_list[[idx]] <- results[[i]]$response
+      failed_calls[idx] <- results[[i]]$failed
+    }
   }
   
   # Log completion time & exit message
   end_time <- Sys.time()
-  cat("Parallel processing completed in", round(as.numeric(end_time - start_time, units = "mins"), 2), "minutes\n")
+  processing_type <- if (force_sequential || max_workers == 1) "Sequential" else "Parallel"
+  cat(processing_type, "processing completed in", round(as.numeric(end_time - start_time, units = "mins"), 2), "minutes\n")
   
   # Return results
   return(list(

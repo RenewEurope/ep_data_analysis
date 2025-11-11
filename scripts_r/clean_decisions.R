@@ -123,7 +123,7 @@ data.table::setnames(x = pl_votes, old = c("notation_votingId"), new = c("rcv_id
 #------------------------------------------------------------------------------#
 # append & clean rcv ----------------------------------------------------------#
 pl_rcv <- lapply(
-  X = resp_list, 
+  X = resp_list,
   FUN = function(x) process_decisions_session_rcv (x) ) |>
     data.table::rbindlist(use.names = TRUE, fill = TRUE)
 # rename & drop cols
@@ -160,8 +160,7 @@ if ( exists("today_date")
 
     # List of Doc IDs by RCVs
     data.table::fwrite(x = unique(pl_votes[
-        grepl(pattern = "VOTE_ELECTRONIC_ROLLCALL", x = decision_method)
-        & !decision_outcome %in% c("LAPSED", "WITHDRAWN"),
+        grepl(pattern = "VOTE_ELECTRONIC_ROLLCALL", x = decision_method),
         list(rcv_id, doc_id)]),
         file = here::here("data_out", "rcv", "rcvid_docid_10.csv") )
 
@@ -179,8 +178,7 @@ if ( exists("today_date")
 
     # List of Doc IDs by RCVs
     data.table::fwrite(x = unique(pl_votes[
-        grepl(pattern = "VOTE_ELECTRONIC_ROLLCALL", x = decision_method)
-        & !decision_outcome %in% c("LAPSED", "WITHDRAWN"),
+        grepl(pattern = "VOTE_ELECTRONIC_ROLLCALL", x = decision_method),
         list(rcv_id, doc_id)]),
         file = here::here("data_out", "rcv", "rcvid_docid_all.csv") )
 
@@ -240,7 +238,7 @@ if ( nrow(decided_on_a_realization_of) > 0L ) {
     decided_on_a_realization_of[, doc_id := gsub(pattern = "(?<=.\\d{4}).",
                                                  replacement = "/", x = doc_id, perl = T)]
     # Delete cols
-    decided_on_a_realization_of[, c("identifier", "identifier2") := NULL]
+    decided_on_a_realization_of[, identifier2 := NULL]
 
     # unique(decided_on_a_realization_of[
     #     type == "doc",

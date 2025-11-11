@@ -31,12 +31,19 @@ process_decisions_session_metadata <- function( votes_raw = resp_list[[1]] ) {
 
     # sometimes the class of some cols is corrupt - fix it here
     cols_character <- c("id", "activity_date", "activity_id", "activity_start_date",
+                        "activity_order", "notation_votingId",
                         "decision_method", "had_activity_type",
                         "decisionAboutId", "decisionAboutId_XMLLiteral",
                         "decided_on_a_part_of_a_realization_of")
-    cols_integer <- c("activity_order", "notation_votingId", "number_of_attendees",
+    if ( !all(sapply(X = votes_raw[, names(votes_raw) %in% cols_character], class) == "character") ){
+        warning("Some of the cols that were supposed to be character are not - Revise.")
+    }
+    cols_integer <- c("number_of_attendees",
                       "number_of_votes_abstention", "number_of_votes_against",
                       "number_of_votes_favor")
+    if ( !all(sapply(X = votes_raw[, names(votes_raw) %in% cols_integer], class) == "integer") ){
+        warning("Some of the cols that were supposed to be integer are not - Revise.")
+    }
 
     # Deal with changing classes between Plenaries -----------------------------
     # sometimes `type` is of class character
@@ -118,7 +125,9 @@ process_decisions_session_metadata <- function( votes_raw = resp_list[[1]] ) {
     votes_raw = data.table::as.data.table(votes_raw)
 
     # inverse_consists_of -----------------------------------------------------#
+    #' This provides the correspondence between DEC and VOT-ITM
     if ("inverse_consists_of" %in% names(votes_raw) ) {
+        # class(votes_raw$inverse_consists_of)
         inverse_consists_of = votes_raw[, list(
             inverse_consists_of = as.character( unlist(inverse_consists_of) )
         ),
@@ -139,6 +148,7 @@ process_decisions_session_metadata <- function( votes_raw = resp_list[[1]] ) {
 
 
     # recorded_in_a_realization_of --------------------------------------------#
+    #' This provides the correspondence between DEC and RCV-ITM
     if ("recorded_in_a_realization_of" %in% names(votes_raw) ) {
         recorded_in_a_realization_of = votes_raw[, list(
             recorded_in_a_realization_of = as.character(
