@@ -25,7 +25,7 @@ cat("\n=====\nStarting to collect RCV data.\n=====\n")
 source(file = here::here("scripts_r", "repo_setup.R"))
 
 # Source our improved XML parsing function
-source(file = here::here("parse_rcv_xml.R"))
+source(file = here::here("scripts_test", "parse_rcv_xml.R"))
 
 # Hard code the start of the mandate ------------------------------------------#
 if ( !exists("mandate_starts") ) {
@@ -43,26 +43,25 @@ if ( !exists("mandate_starts") ) {
 
 
 ### Load list of RCVs Plenaries ------------------------------------------------
-if ( !exists("today_date") && mandate_starts == "2019-07-01" ) {
-  get_api_data(
-    path = here::here("data_out", "docs_pl", "pl_session_docs_all.csv"),
-    script = here::here("scripts_r", "api_pl_session_docs.R"),
-    varname = "pl_session_docs",
-  )
-} else if (!exists("today_date") && mandate_starts == "2024-07-14" ) {
-  get_api_data(
-    path = here::here("data_out", "docs_pl", "pl_session_docs_10.csv"),
-    script = here::here("scripts_r", "api_pl_session_docs.R"),
-    varname = "pl_session_docs",
-  )
-} else # Validity checks
-if (exists("today_date")) {
-  mandate_starts <- Sys.Date() - 7
-} else if ( !exists("today_date") # not a daily run
-            && ( !exists("mandate_starts") # no mandate specified
-                 || !mandate_starts %in% c("2024-07-14", "2019-07-01") ) ) {
-  stop("\n=====\nYou need to specify a valid timeframe.\nThis could be either the starting date for a mandate (currently: '2019-07-01', '2024-07-14'), or today's date.\n=====\n")
-}
+# if ( !exists("today_date") && mandate_starts == "2019-07-01" ) {
+#   get_api_data(
+#     path = here::here("data_out", "docs_pl", "pl_session_docs_all.csv"),
+#     script = here::here("scripts_r", "api_pl_session_docs.R"),
+#     varname = "pl_session_docs",
+#   )
+# } else if (!exists("today_date") && mandate_starts == "2024-07-14" ) {
+#   get_api_data(
+#     path = here::here("data_out", "docs_pl", "pl_session_docs_10.csv"),
+#     script = here::here("scripts_r", "api_pl_session_docs.R"),
+#     varname = "pl_session_docs",
+#   )
+# } else if (exists("today_date")) { # Validity checks
+#   mandate_starts <- Sys.Date() - 7
+# } else if ( !exists("today_date") # not a daily run
+#             && ( !exists("mandate_starts") # no mandate specified
+#                  || !mandate_starts %in% c("2024-07-14", "2019-07-01") ) ) {
+#   stop("\n=====\nYou need to specify a valid timeframe.\nThis could be either the starting date for a mandate (currently: '2019-07-01', '2024-07-14'), or today's date.\n=====\n")
+# }
 
 
 # Extract vector of Plenary Dates ---------------------------------------------#
@@ -102,32 +101,32 @@ counter <- 0L
 
 # Main processing loop
 for (link in seq_along(meet_pl_ids)) {
-  Sys.sleep(time = 2)
+  # Sys.sleep(time = 2)
   counter <- counter + 1L
   cat("Processing file", counter, "of", length(meet_pl_ids), ":", meet_pl_ids[link], "\n")
-  
+
   tryCatch({
     # Parse XML using our improved function
     parsed_data <- parse_rcv_xml(meet_pl_ids[link])
-    
+
     # Store session metadata with file reference
     session_meta <- parsed_data$session_metadata
     session_meta$file_link <- meet_pl_ids[link]
     session_meta$file_number <- counter
     all_sessions_data[[counter]] <- session_meta
-    
+
     # Store vote data with session reference
     vote_data <- parsed_data$individual_votes
     if (nrow(vote_data) > 0) {
-      vote_data$file_link <- meet_pl_ids[link] 
+      vote_data$file_link <- meet_pl_ids[link]
       vote_data$file_number <- counter
       all_votes_data[[counter]] <- vote_data
     }
-    
+
   }, error = function(e) {
     cat("Error processing file", counter, ":", conditionMessage(e), "\n")
     # Store empty data frames to maintain list structure
-    all_sessions_data[[counter]] <- data.frame(file_link = meet_pl_ids[link], 
+    all_sessions_data[[counter]] <- data.frame(file_link = meet_pl_ids[link],
                                               file_number = counter, error = TRUE)
     all_votes_data[[counter]] <- data.frame()
   })
@@ -143,7 +142,7 @@ session_metadata <- data.table::rbindlist(all_sessions_data, fill = TRUE)
 # Clean column names and dimensions
 if (nrow(rcv_allsessions) > 0) {
   cat("Total records:", nrow(rcv_allsessions), "\n")
-  
+
   # Extract legislation report number using base R
   rcv_allsessions[, report_number := {
     # Pattern: A9-0123/2021 or similar
@@ -158,13 +157,13 @@ if (nrow(rcv_allsessions) > 0) {
       }
     })
   }]
-  
+
   # Clean empty strings to NA
   cols_to_clean <- names(rcv_allsessions)
   rcv_allsessions[, (cols_to_clean) := lapply(.SD, function(x) {
     ifelse(x == "" || is.null(x), NA_character_, as.character(x))
   }), .SDcols = cols_to_clean]
-  
+
   # Manual corrections for data entry mistakes
   rcv_allsessions[
     grepl("\\nA9-057/2021 - Olivier Chastel", description, ignore.case = TRUE, perl = TRUE),
@@ -175,15 +174,15 @@ if (nrow(rcv_allsessions) > 0) {
   rcv_allsessions[
     grepl("A9-0088/202 - Clara Aguilera - Proc", description, ignore.case = TRUE, perl = TRUE),
     report_number := "A9-0088/2020"]
-  
+
   # Write file
   data.table::fwrite(
-    x = rcv_allsessions, 
+    x = rcv_allsessions,
     file = here::here("data_out", "rcv_allsessions.csv"),
     showProgress = TRUE)
-  
+
   cat("Successfully wrote rcv_allsessions.csv with", nrow(rcv_allsessions), "records\n")
-  
+
 } else {
   cat("No data to write - all parsing failed\n")
 }

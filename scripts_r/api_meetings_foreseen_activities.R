@@ -148,7 +148,7 @@ if ("was_purpose_of" %in% names(foreseen_activities) ){
     tidyr::unnest(was_purpose_of, names_sep = "_") |>
     tidyr::unnest(was_purpose_of_activity_label) |>
     dplyr::select( any_of( c("id", "fr", "en") ) )
-  
+
   if ("fr" %in% names(was_purpose_of) ) {
     is_urgent = was_purpose_of |>
       dplyr::mutate(is_urgent = ifelse(
@@ -228,18 +228,18 @@ votes_foreseen = foreseen_activities[
 # Legislative Procedure -------------------------------------------------------#
 if ("structured_content_en" %in% names(votes_foreseen)) {
   votes_foreseen[
-    grepl(pattern = '"symbol\">***<', 
-          x = structured_content_en, 
+    grepl(pattern = '"symbol\">***<',
+          x = structured_content_en,
           fixed = TRUE),
     legis_procedure := "Consent procedure"]
   votes_foreseen[
-    grepl(pattern = '"symbol\">*<', 
-          x = structured_content_en, 
+    grepl(pattern = '"symbol\">*<',
+          x = structured_content_en,
           fixed = TRUE),
     legis_procedure := "Consultation procedure"]
   votes_foreseen[
-    grepl(pattern = '"symbol\">***I<', 
-          x = structured_content_en, 
+    grepl(pattern = '"symbol\">***I<',
+          x = structured_content_en,
           fixed = TRUE),
     legis_procedure := "Ordinary legislative procedure: first reading"]
   votes_foreseen[
@@ -249,7 +249,7 @@ if ("structured_content_en" %in% names(votes_foreseen)) {
     legis_procedure := "Ordinary legislative procedure: second reading"]
   votes_foreseen[
     grepl(pattern = '"symbol\">***III<',
-          x = structured_content_en, 
+          x = structured_content_en,
           fixed = TRUE),
     legis_procedure := "Ordinary legislative procedure: third reading"]
 }
@@ -291,14 +291,14 @@ process_ids_list <- vector(mode = "list", length = length(process_ids_chunks))
 # loop to get all decisions
 for (i_param in seq_along(process_ids_list) ) {
   print(i_param)
-  
+
   # Build REQUEST
   req = httr2::request(
     paste0("https://data.europarl.europa.eu/api/v2/procedures/",
            paste0(process_ids_chunks[[i_param]], collapse = ","),
            "?format=application%2Fld%2Bjson") ) |>
     httr2::req_headers("User-Agent" = "renew_parlwork-prd-2.0.0")
-  
+
   # Add time-out and ignore error before performing request
   resp = req |>
     httr2::req_headers("User-Agent" = "renew_parlwork-prd-2.0.0") |>
@@ -307,7 +307,7 @@ for (i_param in seq_along(process_ids_list) ) {
     httr2::req_retry(max_tries = 5, # retry a bunch of times in case of failures
                      backoff = ~ 2 ^ .x + runif(n = 1, min = -0.5, max = 0.5) ) |>
     httr2::req_perform()
-  
+
   # If not an error, download and make available in ENV
   if ( httr2::resp_status(resp) == 200L ) {
     resp_body = resp |>
@@ -688,6 +688,7 @@ procedures_doc_id[, doc_id := gsub(pattern = "(?<=.\\d{4}).",
 # sapply(procedures_doc_id, function(x) sum(is.na(x))) # check
 
 # Save temporary file
+dir.create(path = here::here("data_out", "files_tmp"), showWarnings = FALSE)
 data.table::fwrite(x = procedures_doc_id[, list(process_id, identifier, doc_id)],
                    file = here::here(
                      "data_out", "files_tmp", "procedures_doc_id.csv"
@@ -748,7 +749,7 @@ final_dt <- votes_foreseen |>
 
 # fixing structure to be like the Python version
 # final_dt$committee<- lapply(
-#   X = final_dt$committee, 
+#   X = final_dt$committee,
 #   FUN = function (x) unlist(cbind(flatten((x))))
 #   )
 

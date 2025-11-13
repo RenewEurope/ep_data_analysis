@@ -51,8 +51,14 @@ source( here::here("scripts_main", "ep_rcv_today.R") )
 ## Aggregates ------------------------------------------------------------------
 source(file = here::here("scripts_r", "aggregate_rcv_today.R") )
 
-# p =meps_rcv_today |> 
-#   join_meps_names() |> join_polit_labs() |> join_meps_countries()
+# dt_tmp = meps_rcv_today |>
+#   dplyr::filter(rcv_id == 180948) |>
+#   join_meps_names() |>
+#   join_polit_labs() |>
+#   join_meps_countries()
+# write_csv(x = dt_tmp, file = here::here(
+#   "data_out", "aggregates", "daily", "meps_1rcv_today.csv")
+#   )
 
 
 #------------------------------------------------------------------------------#

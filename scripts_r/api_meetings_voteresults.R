@@ -100,7 +100,8 @@ if (use_parallel) {
     capacity = 220,
     fill_time_s = 60,
     show_progress = FALSE,
-    extract_data = TRUE
+    extract_data = TRUE,
+    force_sequential = TRUE
   )
   resp_list <- results$responses
 }
@@ -128,9 +129,12 @@ voteids_number <- lapply(
 ) |>
   data.table::rbindlist(use.names = TRUE, fill = TRUE) |>
   unique()
-data.table::setnames(x = voteids_number,
+if (nrow(voteids_number) > 0){
+  data.table::setnames(x = voteids_number,
                      old = c("id", "activity_id"),
                      new = c("vot_evnt_id", "vot_id"))
+}
+
 
 
 #------------------------------------------------------------------------------#
@@ -225,13 +229,15 @@ votes_based_on_a_realization_of <- unnest_nested_list(
   group_cols = c("id", "activity_id"),
   unnest_col = "based_on_a_realization_of"
 )
-data.table::setnames(x = votes_based_on_a_realization_of,
-                     old = c("id", "activity_id"),
-                     new = c("vot_evnt_id", "vot_id"))
+
 # Check
 # votes_based_on_a_realization_of[, .N, by = list(vot_id)][order(N)]
 
 if ( nrow(votes_based_on_a_realization_of) > 0L ) {
+  data.table::setnames(x = votes_based_on_a_realization_of,
+                       old = c("id", "activity_id"),
+                       new = c("vot_evnt_id", "vot_id"))
+
   # create temporary duplicate col for string processing
   votes_based_on_a_realization_of[, `:=`(
     identifier2 = gsub(pattern="eli/dl/doc/", replacement = "",

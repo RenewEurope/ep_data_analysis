@@ -75,7 +75,7 @@ if ( "vote_label_en" %in% names(votes_today) ) {
 cols_tokeep <- c("doc_id", "rcv_id", "vote_label", "referenceText_en", "is_final",
                  "referenceText_fr", "activity_label_mul", "activity_label_fr",
                  "activity_label_en", "number_of_attendees", "number_of_votes_favor",
-                 "number_of_votes_abstention", "number_of_votes_against", "vote_id")
+                 "number_of_votes_abstention", "number_of_votes_against", "vot_id")
 
 final_votes <- votes_today |>
     # Only FINAL RCVs
@@ -89,7 +89,7 @@ final_votes <- votes_today |>
     dplyr::mutate(is_multiple_final = ifelse(
         test = sum(is_final, na.rm = TRUE) > 1L,
         yes = 1L, no = 0L),
-        .by = vote_id) |>
+        .by = vot_id) |>
     data.table::as.data.table()
 
 if ( !"number_of_attendees" %in% names(votes_today) ) {
@@ -203,7 +203,7 @@ if ( !"committee_lab" %in% names(final_votes) ) {
 if ( file.exists(here::here(
     "data_out", "daily", paste0("epp_coalitions_", today_date, ".csv")
     ) ) ) {
-    cat("\nThere were breached of the Coalition Agreement today.\n")
+    cat("\nThere were breaches of the Coalition Agreement today.\n")
 
     # Read in data
     epp_coalitions = data.table::fread(file = here::here(
@@ -266,6 +266,3 @@ for ( i_wg in seq_along( today_wg) ) {
                         paste0("pa_analysis_", today_wg[i_wg], ".docx") )
         )
 }
-
-
-
