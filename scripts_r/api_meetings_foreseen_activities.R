@@ -34,7 +34,7 @@ if ( !exists("pl_date") ) {
 print(pl_date)
 
 if ( !exists("pl_date_ymd") ) {
-    pl_date_ymd <- as.character( Sys.Date() )
+  pl_date_ymd <- as.character( Sys.Date() )
   #pl_date_ymd <- "2025-10-20" # test
 }
 print(pl_date_ymd)
