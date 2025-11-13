@@ -662,7 +662,7 @@ procedures_doc_id <- procedures_doc_id[!is.na(doc_id)]
 # For Resolutions, we may have all the B- files as well as the RC- files
 procedures_doc_id[, nchar_doc := nchar(doc_id)]
 # We sort them here, so Joint Resolutions always appear on top
-procedures_doc_id[order(process_id, -nchar_doc)]
+procedures_doc_id = procedures_doc_id[order(process_id, -nchar_doc)]
 procedures_doc_id[, nchar_doc := NULL]
 # Nest the results back into a list-column, grouped by procedure.
 procedures_doc_id <- procedures_doc_id|>
@@ -706,7 +706,10 @@ final_dt <- votes_foreseen |>
     dplyr::arrange(activity_date, activity_order_day)
 
 # fixing structure to be like the Python version
-final_dt$committee<- lapply(final_dt$committee, function (x) unlist(cbind(flatten((x)))))
+# final_dt$committee<- lapply(
+#   X = final_dt$committee, 
+#   FUN = function (x) unlist(cbind(flatten((x))))
+#   )
 
 # Store as .rds ---------------------------------------------------------------#
 dir.create(path = here::here("data_out", "meetings", "meetings_foreseen_rds"),
