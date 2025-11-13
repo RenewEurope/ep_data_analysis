@@ -29,13 +29,13 @@ source(file = here::here("scripts_r", "repo_setup.R") )
 # Plenary dates
 if ( !exists("pl_date") ) {
     pl_date <- gsub(pattern = "-", replacement = "", x = Sys.Date() )
-    # pl_date <- "20250403" # test
+    # pl_date <- "20251020" # test
 }
 print(pl_date)
 
 if ( !exists("pl_date_ymd") ) {
     pl_date_ymd <- as.character( Sys.Date() )
-    # pl_date_ymd <- "2025-04-03" # test
+  #pl_date_ymd <- "2025-10-20" # test
 }
 print(pl_date_ymd)
 
@@ -705,6 +705,8 @@ final_dt <- votes_foreseen |>
         .by = activity_date) |>
     dplyr::arrange(activity_date, activity_order_day)
 
+# fixing structure to be like the Python version
+final_dt$committee<- lapply(final_dt$committee, function (x) unlist(cbind(flatten((x)))))
 
 # Store as .rds ---------------------------------------------------------------#
 dir.create(path = here::here("data_out", "meetings", "meetings_foreseen_rds"),
@@ -749,7 +751,6 @@ final_dt |>
 
 #------------------------------------------------------------------------------#
 # Clean up before exiting -----------------------------------------------------#
-
 # Run time
 script_ends <- Sys.time()
 script_lapsed = script_ends - script_starts
