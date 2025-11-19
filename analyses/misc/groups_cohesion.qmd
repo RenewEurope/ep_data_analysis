@@ -20,8 +20,10 @@ execute:
 
 ## KEY MESSAGES
 
-* 
-*
+* S&D are the most cohesive political group, with Renew being the third most cohesive.
+* Extremes of the political spectrum tend to be less cohesive on final votes, than on not final votes (ESN exception).  Centre parties are more cohesive on final than on non final votes (Renew exception).
+* Renew appears as the most cohesive in CULT, INTA, ITRE, JURI (tied), and PECH. Worst cohesion in EMPL.
+* The LEFT, ESN, and PfE have largely increased their cohesion rate across the mandate, with centre parties remaining stable.
 
 ## Intro
 ```{r}
@@ -291,7 +293,7 @@ cohesion_dt[, .(avg = round( mean(cohesion, na.rm = TRUE), digits = 1)),
 ```
 
 
-**COMMENT HERE**
+*S&D are the most cohesive group to date (93,3% cohesion index), during the current mandate, followed by the Greens (92,8%), and finally Renew (91,6%). Patriots for Europe are the least cohesive group. Overall, we can observe that the centre parties are in general more cohesive than the extremes counterparts of the political spectrum.*
 
 
 ### Cohesion Rates by Final
@@ -357,6 +359,9 @@ cohesion_final_avg |>
 ```
 
 
+*In terms of the final votes, we further observe an increase in the cohesion of the centre parties, now only separated by 3,7% (PPE vs S&D). Extremes of the political spectrum tend to be less cohesive on final votes, than on not final votes (with the exception of ESN). On the contrary, Centre parties are more cohesive on final than on non final votes (Renew being the exception, but only marginally by 0,6%).*
+
+
 ### Cohesion Rates by Committee
 ```{r}
 #| fig-width: 8
@@ -394,6 +399,8 @@ cohesion_bycommittee[
 #        device = "pdf", dpi = 300, height = 8, width = 12)
 ```
 
+
+*When we take a look at committees, Renew appears as the most cohesive in CULT, INTA, ITRE, JURI (tied), and PECH, with a worseperformance (less cohesive) in SANT, REGI, and especially in EMPL, where it appears only above the NI members. EPP only tops the cohesion charts in ECON, closely followed by Renew. *
 
 ### Cumulative Cohesion Rates
 ```{r}
@@ -457,6 +464,7 @@ cohesion_allpolgroups[
 #        device = "pdf", dpi = 300, height = 7, width = 12.5)
 ```
 
+*For the cumulative cohesion rates, the centre parties tend to have a stable cohesion, with S&D and the Greens showing a very slight increase over time. The LEFT, ESN, and PfE have largely increased their cohesion rate across the mandate.*
 
 ## Reproducibility
 ```{r reproducibility}
