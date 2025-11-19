@@ -18,17 +18,19 @@ execute:
   warning: false
 ---
 
-## KEY MESSAGES
+## Key Messages
 
 * The **Greens** display the highest **vote participation** among all Groups.
 *__Renew__ comes third*. 
 * **S&D** is the most cohesive political group, with **Renew** being the *third* most cohesive.
 * Political Groups on the **extremes** of the political spectrum tend to be *less cohesive on final votes*, with the exception of ESN.
 Conversely, Groups in the **centre** tend to be *more cohesive on final votes*, with the exception of Renew.
-* Renew appears as the most cohesive in CULT, INTA, ITRE, and PECH. Worst cohesion in EMPL.
-* The LEFT, ESN, and PfE have largely increased their cohesion rate across the mandate, with centre parties remaining stable.
+* If we break down Plenary votes by **Committee**, Renew appears as the most cohesive in CULT, INTA, ITRE, and PECH. Worst cohesion in EMPL.
+* Looking at progression **over time**, The LEFT, ESN, and PfE have largely increased their cohesion rate during the mandate, with centre parties remaining stable.
+* Switching to votes occurring in Committees,
 
-## Intro
+
+## Introduction
 ```{r}
 #| include: false
 
@@ -161,7 +163,7 @@ renew_current_meps = unique(meps_current$pers_id[
 
 We include in our analysis all voting data relative to roll-call votes (RCVs) since `r mandate_starts`.
 To provide some context, we currently have `r length(unique(meps_rcv_mandate$rcv_id))` RCVs in our database.
-It is important to appreciate that what we have is only a subset of the all legislation being adopted. 
+It is important to appreciate that what we have is only a subset of all the legislation being adopted so far. 
 Indeed, the EP recognises different forms of voting - such as *raise of hands*, or *electronic votes* - but RCVs are the only ones where we able to trace votes to individual MEPs - that is, they are so-called *nominal* votes. 
 Since the start of the current mandate, RCVs were approximately `r round(n_rcv/n_votes*100, digits=1)`% of the total votes.
 
@@ -222,6 +224,8 @@ attendance_bypolgroup |>
   theme(
     axis.text.y = element_text(face = "bold", size = 12)
   )
+ggsave(filename = here::here("figures", "attendance_bypolgroup.jpeg"),
+       device = "jpeg", dpi = 300, height = 6, width = 8)
 ```
 
 
@@ -250,6 +254,7 @@ As a *technical side note*, please be aware that this basically picks the mode o
 However, experts have highlighted other forms of vote are actually at the MEPs' disposal, i.e. being present in the House but not showing up for specific votes (`no_vote`), or being absent on the voting day (`absent`).
 We do not count those in this note, but can be included if needs be.
 Further, and to be clear, here we do not make use of data coming from the Attendance Registers, but these can be included if needs be.
+
 
 ### Cohesion Rates in Plenary
 #### Overall cohesion rates
@@ -286,22 +291,23 @@ cohesion_dt[, .(avg = round( mean(cohesion, na.rm = TRUE), digits = 1)),
   geom_text(aes(label = avg), size = 3, nudge_y = 3) +
   coord_flip() +
   labs(x="", y="Average Cohesion Rates (%)", fill="",
-       title = "Cohesion Rates by EP Political Groups",
+       # title = "Cohesion Rates by EP Political Groups",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
   scale_fill_manual(values = polgroup_cols) +
   guides(fill = guide_legend(nrow = 1)) +
   theme_minimal() +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(face = "bold"),
+  theme(#plot.title.position = "plot",
+        #plot.title = element_text(face = "bold"),
         legend.position = "none",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
         axis.text.y = element_text(face = "bold"))
-# ggsave(filename = here::here("figures", "cohesion_bypolgroup_avg.pdf"), 
-#        device = "pdf", dpi = 300, height = 8, width = 12)
+ggsave(filename = here::here("figures", "cohesion_bypolgroup_avg.jpeg"), 
+       device = "jpeg", dpi = 300, height = 8, width = 6)
 ```
 
-
-*S&D are the most cohesive group to date (93,3% cohesion index), during the current mandate, followed by the Greens (92,8%), and finally Renew (91,6%). Patriots for Europe are the least cohesive group. Overall, we can observe that the centre parties are in general more cohesive than the extremes counterparts of the political spectrum.*
+S&D is the most cohesive group to date (93,3% cohesion index), during the current mandate, followed by the Greens (92,8%), and Renew (91,6%).
+Patriots for Europe are the least cohesive group. 
+Overall, we can observe that Political Groups in the centre are in general more cohesive than their extremes counterparts.
 
 
 #### Cohesion Rates by Final
@@ -353,21 +359,22 @@ cohesion_final_avg |>
   scale_fill_manual(values = cols_final) +
   coord_flip() +
   labs(x="", y="Average Cohesion Rates (%)", fill="",
-       title = "Cohesion Rates by EP Political Groups",
+       #title = "Cohesion Rates by EP Political Groups",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
   guides(fill = guide_legend(nrow = 1)) +
   theme_minimal() +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(face = "bold"),
+  theme(#plot.title.position = "plot",
+        #plot.title = element_text(face = "bold"),
         legend.position = "top",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
         axis.text.y = element_text(face = "bold") )
-# ggsave(filename = here::here("figures", "cohesion_bypolgroup_avg.pdf"), 
-#        device = "pdf", dpi = 300, height = 8, width = 12)
+ggsave(filename = here::here("figures", "cohesion_bypolgroup_avg.jpeg"), 
+       device = "jpeg", dpi = 300, height = 8, width = 8)
 ```
 
-
-*In terms of the final votes, we further observe an increase in the cohesion of the centre parties, now only separated by 3,7% (PPE vs S&D). Extremes of the political spectrum tend to be less cohesive on final votes, than on not final votes (with the exception of ESN). On the contrary, Centre parties are more cohesive on final than on non final votes (Renew being the exception, but only marginally by 0,6%).*
+In terms of final votes, we observe an increase in the cohesion rates of Political Groups in the centre, now only separated by 3,7 percentage points (PPE vs S&D). 
+Centre Groups tend to be more cohesive on final votes (Renew being the exception, but only marginally by 0,6 percentage points).
+At the extremes of the political spectrum, Groups tend to be less cohesive on final votes than on not final votes (with the exception of ESN).
 
 
 #### Cohesion Rates by Committee
@@ -392,23 +399,24 @@ cohesion_bycommittee[
   facet_wrap(~committee_lab, scales = "free_y", ncol = 2) +
   coord_flip() +
   labs(x="", y="Average Cohesion Rates (%)", fill="",
-       title = "Cohesion Rates by Committees",
+       #title = "Cohesion Rates by Committees",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
   scale_x_reordered() +
   scale_fill_manual(values = polgroup_cols) +
   guides(fill = guide_legend(nrow = 1)) +
   theme_minimal() +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(face = "bold"),
+  theme(#plot.title.position = "plot",
+        #plot.title = element_text(face = "bold"),
         legend.position = "none",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
         axis.text.y = element_text(face = "bold"))
-# ggsave(filename = here::here("figures", "cohesion_bycommittee.pdf"),
-#        device = "pdf", dpi = 300, height = 8, width = 12)
+ggsave(filename = here::here("figures", "cohesion_bycommittee.jpeg"),
+       device = "jpeg", dpi = 300, height = 12, width = 8)
 ```
 
+When we take a look at committees, Renew appears as the most cohesive in CULT, INTA, ITRE, and PECH, with a worse performance (less cohesive) in SANT, REGI, and especially in EMPL, where it appears only above the NI members. 
+EPP only tops the cohesion charts in ECON, closely followed by Renew.
 
-*When we take a look at committees, Renew appears as the most cohesive in CULT, INTA, ITRE, JURI (tied), and PECH, with a worseperformance (less cohesive) in SANT, REGI, and especially in EMPL, where it appears only above the NI members. EPP only tops the cohesion charts in ECON, closely followed by Renew. *
 
 #### Cumulative Cohesion Rates
 ```{r}
@@ -456,7 +464,7 @@ cohesion_allpolgroups[
              colour = political_group, fill = political_group) ) +
   geom_point(alpha = 0.1, show.legend = FALSE) +
   geom_smooth(show.legend = FALSE) +
-  facet_wrap(~political_group, nrow=4) + # change this to 2 if printing pdf
+  facet_wrap(~political_group, nrow=2) + 
   scale_x_discrete(
     breaks = c(as.character(min(cohesion_allpolgroups$rcv_id)),
                as.character(max(cohesion_allpolgroups$rcv_id))),
@@ -468,14 +476,23 @@ cohesion_allpolgroups[
     axis.text.x = element_text(hjust=c(0,1)),
     panel.spacing.x = unit(5, "mm")
   )
-# ggsave(filename = here::here("figures", "cumulative_cohesion_allgroups.pdf"),
-#        device = "pdf", dpi = 300, height = 7, width = 12.5)
+ggsave(filename = here::here("figures", "cumulative_cohesion_allgroups.jpeg"),
+       device = "jpeg", dpi = 300, height = 12, width = 8)
 ```
 
-*For the cumulative cohesion rates, the centre parties tend to have a stable cohesion, with S&D and the Greens showing a very slight increase over time. The LEFT, ESN, and PfE have largely increased their cohesion rate across the mandate.*
+Cumulative cohesion rates offer us a glimpse of evolution over time of this metric.
+Political Groups in the centre tend to have a stable cohesion, with S&D and the Greens showing a very slight increase over time. 
+The LEFT, ESN, and PfE have largely increased their cohesion rate across the mandate.
 
 
 ### Cohesion Rates in Committees
+Contrary to previous mandates, we are now in a position to calculate cohesion rates also for RCVs taking place in Committees.
+The graph below shows every RCV that took place in Committees since the start of the mandate (the
+grey dots). 
+The size and opacity of the dots reflect the number of MEPs attending those votes. 
+In the context of Committees, it is particularly important to consider the number of MEPs as in many cases
+we simply do not have enough MEPs attending from every Political Groups to calculate the metric.
+The solid, colored diamonds represent the average cohesion rates by Group.
 ```{r}
 #| fig-width: 8
 #| fig-height: 9
@@ -505,13 +522,13 @@ cohesion_cmt |>
   scale_fill_manual(values = polgroup_cols) +
   labs(x="Cohesion Rates (%)", y = "" , 
        size="N. MEPs by Vote", alpha = "N. MEPs by Vote",
-       title = "EPP's Cohesion Rates by Committee and Vote Type",
+       #title = "Political Groups' Cohesion Rates by Committee and Vote Type",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
   guides(fill = guide_legend(nrow = 1)) +
   theme_minimal() +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(face = "bold", size = 18),
-        plot.subtitle = element_text(size = 15),
+  theme(#plot.title.position = "plot",
+        #plot.title = element_text(face = "bold", size = 18),
+        #plot.subtitle = element_text(size = 15),
         legend.position = "top",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
         axis.text.y = element_text(face = "bold"))
@@ -521,7 +538,7 @@ ggsave(filename = here::here("figures", "cohesion_cmt.jpeg"),
 
 S&D is the most cohesive Political Group emerging from Committee RCVs.
 Renew comes fourth, after the Greens and ESN. 
-However, it must be noted that ESN's results are likely skewed because of the extremely large share of votes where there was just 1 MEP attending the votes, and thus calculating the metric is unfeasible. 
+However, it must be noted that ESN's results are likely skewed because of the extremely large share of votes where there was just 1 MEP present, which makes it impossible to calculate the metric.
 ```{r}
 cohesion_aggr |> 
   dplyr::arrange(desc(metric_missing)) |> 

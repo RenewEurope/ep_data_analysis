@@ -123,7 +123,7 @@ renew_current_meps = unique(meps_current$pers_id[
 
 We include in our analysis all voting data relative to roll-call votes (RCVs) since `r mandate_starts`.
 To provide some context, we currently have `r length(unique(meps_rcv_mandate$rcv_id))` RCVs in our database.
-It is important to appreciate that what we have is only a subset of the all legislation being adopted. 
+It is important to appreciate that what we have is only a subset of all the legislation being adopted so far. 
 Indeed, the EP recognises different forms of voting - such as *raise of hands*, or *electronic votes* - but RCVs are the only ones where we able to trace votes to individual MEPs - that is, they are so-called *nominal* votes. 
 Since the start of the current mandate, RCVs were approximately `r round(n_rcv/n_votes*100, digits=1)`% of the total votes.
 
