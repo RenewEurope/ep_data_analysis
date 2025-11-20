@@ -206,7 +206,7 @@ attendance_bypolgroup |>
   dplyr::mutate(political_group = forcats::fct_reorder(.f = political_group, 
                                                        .x = attendance_rate_avg, 
                                                        .desc = TRUE)) |>
-  ggplot(aes(x = attendance_rate_avg, y = fct_rev(political_group),
+  ggplot(aes(x = attendance_rate_avg, y = political_group,
              fill = political_group) ) +
   geom_col(linewidth=0.1, colour = "black", show.legend = FALSE) +
   geom_text(aes(label = round(attendance_rate_avg*100, digits = 1)), 
@@ -284,24 +284,29 @@ cohesion_dt <- meps_rcv_mandate[
   keyby = list(rcv_id, polgroup_id) ] |> 
   join_polit_labs()
 
-cohesion_dt[, .(avg = round( mean(cohesion, na.rm = TRUE), digits = 1)), 
-            by = list(political_group)][order(-avg)] |> 
-  dplyr::mutate(political_group = fct_reorder(.f = political_group, .x = avg)) |> 
-  ggplot(aes(x=political_group, y = avg, fill = political_group)) +
+cohesion_dt[, list(
+  avg = round( mean(cohesion, na.rm = TRUE), digits = 1)
+  ),
+  by = list(political_group)
+  ] |> 
+  dplyr::mutate(political_group = fct_reorder(.f = political_group, 
+                                              .x = avg, 
+                                              .desc = TRUE)) |> 
+  ggplot(aes(x=political_group, y = avg/100, fill = political_group)) +
   geom_col(colour = "black", linewidth = 0.1) +
-  geom_text(aes(label = avg), size = 4, nudge_y = 3) +
-  #coord_flip() +
+  geom_text(aes(label = avg), size = 4, nudge_y = 0.05) +
   labs(x="", y="Average Cohesion Rates (%)", fill="",
        # title = "Cohesion Rates by EP Political Groups",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
   scale_fill_manual(values = polgroup_cols) +
+  scale_y_continuous(limits=c(0, 1), labels = scales::percent) +
   guides(fill = guide_legend(nrow = 1)) +
   theme_minimal() +
   theme(#plot.title.position = "plot",
         #plot.title = element_text(face = "bold"),
         legend.position = "none",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
-        axis.text.y = element_text(face = "bold"))
+        axis.text = element_text(face = "bold"))
 ggsave(filename = here::here("figures", "cohesion_bypolgroup_avg.jpeg"), 
        device = "jpeg", dpi = 300, height = 8, width = 6)
 ```
@@ -314,7 +319,7 @@ Overall, we can observe that Political Groups in the centre are in general more 
 #### Cohesion Rates by Final
 ```{r}
 #| fig-width: 8
-#| fig-height: 5
+#| fig-height: 6
 
 #------------------------------------------------------------------------------#
 # Final Votes data ------------------------------------------------------------#
@@ -341,7 +346,7 @@ cohesion_final_dt <- meps_rcv_mandate[
 # REF: https://stackoverflow.com/questions/40211451/geom-text-how-to-position-the-text-on-bar-as-i-want
 cohesion_final_avg <- cohesion_final_dt[, list(
   avg = round( mean(cohesion, na.rm = TRUE), digits = 1)), 
-  by = list(political_group, is_final)][order(avg)]
+  by = list(political_group, is_final)][order(-avg)]
 
 # Extract rank vector for plot
 plot_rank <- cohesion_final_avg$political_group[
@@ -352,13 +357,13 @@ cohesion_final_avg |>
     is_final = ifelse(test = is_final == 1L,
                       yes = "Final", no = "Not Final"), 
     is_final = factor(is_final, levels = c("Final", "Not Final") ) ) |> 
-  ggplot(aes(x = factor(political_group, levels = plot_rank), y = avg) ) +
+  ggplot(aes(x = factor(political_group, levels = plot_rank), y = avg/100) ) +
   geom_col(aes(fill = is_final, group = is_final),
            colour = "black", linewidth = 0.1, position = "dodge") +
   geom_text(aes(label = avg, group = is_final), size = 3,
             vjust = -0.7, position = position_dodge(width = 1), inherit.aes = TRUE) +
   scale_fill_manual(values = cols_final) +
-  #coord_flip() +
+  scale_y_continuous(limits=c(0, 1), labels = scales::percent) +
   labs(x="", y="Average Cohesion Rates (%)", fill="",
        #title = "Cohesion Rates by EP Political Groups",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
@@ -368,7 +373,7 @@ cohesion_final_avg |>
         #plot.title = element_text(face = "bold"),
         legend.position = "top",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
-        axis.text.y = element_text(face = "bold") )
+        axis.text = element_text(face = "bold") )
 ggsave(filename = here::here("figures", "cohesion_bypolgroup_avg.jpeg"), 
        device = "jpeg", dpi = 300, height = 8, width = 8)
 ```
@@ -395,14 +400,15 @@ cohesion_bycommittee[
   by = list(political_group, committee_lab)] |> 
   dplyr::mutate(political_group_rw = reorder_within(
     political_group, avg_cohesion, committee_lab) ) |>
-  ggplot(aes(x=political_group_rw, y = avg_cohesion, fill = political_group)) +
+  ggplot(aes(x = avg_cohesion/100, y = political_group_rw, 
+             fill = political_group)) +
   geom_col(colour = "black", linewidth = 0.1) +
-  facet_wrap(~committee_lab, scales = "free_x", ncol = 2) +
-  #coord_flip() +
+  facet_wrap(~committee_lab, scales = "free_y", ncol = 2) +
   labs(x="", y="Average Cohesion Rates (%)", fill="",
        #title = "Cohesion Rates by Committees",
        caption = "Source: EP. Notes: data is relative to RCVs in Plenary") +  
-  scale_x_reordered() +
+  scale_y_reordered() +
+  scale_x_continuous(limits=c(0, 1), labels = scales::percent) +
   scale_fill_manual(values = polgroup_cols) +
   guides(fill = guide_legend(nrow = 1)) +
   theme_minimal() +
@@ -496,7 +502,7 @@ we simply do not have enough MEPs attending from every Political Groups to calcu
 The solid, colored diamonds represent the average cohesion rates by Group.
 ```{r}
 #| fig-width: 8
-#| fig-height: 9
+#| fig-height: 6
 
 ###--------------------------------------------------------------------------###
 # !!WATCH OUT!! ---------------------------------------------------------------#
@@ -516,8 +522,8 @@ cohesion_cmt[, list(
 ] |> 
   mutate(political_group = forcats::fct_reorder(.f = political_group, 
                                                 .x = cohesion_avg, 
-                                                .fun = mean)) |> 
-  ggplot(aes(x = cohesion_avg, y = political_group, fill = political_group)) +
+                                                .fun = mean, .desc = TRUE                                               )) |> 
+  ggplot(aes(x = political_group, y = cohesion_avg/100, fill = political_group)) +
   # geom_jitter(aes(alpha = tot_votes, size = tot_votes), 
   #             shape = 21, width = 0, height = 0.3, linewidth=0.1,
   #             colour = "black", fill = "grey") +
@@ -526,8 +532,9 @@ cohesion_cmt[, list(
   #              show.legend = FALSE) +
   geom_col(colour = "black", linewidth = 0.1, show.legend = FALSE) +
   geom_text(aes(label = round(cohesion_avg, digits = 1)),
-            size = 3, nudge_x = 3) +
+            size = 3, nudge_y = 0.05) +
   scale_fill_manual(values = polgroup_cols) +
+  scale_y_continuous(limits=c(0, 1.05), labels = scales::percent) +
   labs(x="Cohesion Rates (%)", y = "" , 
        size="N. MEPs by Vote", alpha = "N. MEPs by Vote",
        #title = "Political Groups' Cohesion Rates by Committee and Vote Type",
@@ -539,7 +546,7 @@ cohesion_cmt[, list(
         #plot.subtitle = element_text(size = 15),
         legend.position = "top",
         # strip.text.y.right = element_text(angle = 0, face = "bold"),
-        axis.text.y = element_text(face = "bold"))
+        axis.text = element_text(face = "bold"))
 ggsave(filename = here::here("figures", "cohesion_cmt.jpeg"),
        device = "jpeg", dpi = 300, height = 9, width = 8)
 ```
