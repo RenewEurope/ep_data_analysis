@@ -508,17 +508,24 @@ cohesion_cmt <- data.table::fread(
   file = "/home/scipima/Documents/github/iter_committee_test/data_out/tmp/cohesion_cmt.csv")
 
 
-cohesion_cmt |> 
+cohesion_cmt[, list(
+  cohesion_avg = mean(cohesion, na.rm = TRUE)
+  ),
+  by = list(political_group)
+] |> 
   mutate(political_group = forcats::fct_reorder(.f = political_group, 
-                                                .x = cohesion, 
+                                                .x = cohesion_avg, 
                                                 .fun = mean)) |> 
-  ggplot(aes(x = cohesion, y = political_group)) +
-  geom_jitter(aes(alpha = tot_votes, size = tot_votes), 
-              shape = 21, width = 0, height = 0.3, linewidth=0.1,
-              colour = "black", fill = "grey") +
-  stat_summary(aes(fill = political_group),
-               fun=mean, geom="point", size = 10, shape = 23, linewidth=2, 
-               show.legend = FALSE) +
+  ggplot(aes(x = cohesion_avg, y = political_group, fill = political_group)) +
+  # geom_jitter(aes(alpha = tot_votes, size = tot_votes), 
+  #             shape = 21, width = 0, height = 0.3, linewidth=0.1,
+  #             colour = "black", fill = "grey") +
+  # stat_summary(aes(fill = political_group),
+  #              fun=mean, geom="point", size = 10, shape = 23, linewidth=2, 
+  #              show.legend = FALSE) +
+  geom_col(colour = "black", linewidth = 0.1, show.legend = FALSE) +
+  geom_text(aes(label = round(cohesion_avg, digits = 1)),
+            size = 3, nudge_x = 3) +
   scale_fill_manual(values = polgroup_cols) +
   labs(x="Cohesion Rates (%)", y = "" , 
        size="N. MEPs by Vote", alpha = "N. MEPs by Vote",
